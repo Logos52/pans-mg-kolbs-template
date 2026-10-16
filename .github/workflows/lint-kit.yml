@@ -50,3 +50,19 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
+      - name: Prove a new R16 hit fails
+        run: |
+          probe=$(mktemp -d)
+          cp lint-kit.json "$probe/lint-kit.json"
+          mkdir -p "$probe/docs"
+          printf 'The path — stays here.\n' > "$probe/docs/probe.md"
+          set +e
+          set -o pipefail
+          (cd "$probe" && "$GITHUB_WORKSPACE/node_modules/.bin/kit" check | tee "$RUNNER_TEMP/probe.txt")
+          status=$?
+          cat "$RUNNER_TEMP/probe.txt"
+          if [ "$status" -eq 0 ]; then
+            echo "probe should have failed"
+            exit 1
+          fi
+          grep -q "R16 emDash" "$RUNNER_TEMP/probe.txt"
