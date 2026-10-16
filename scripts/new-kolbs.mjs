@@ -1,7 +1,4 @@
 #!/usr/bin/env node
-// Kolbs cycle: mark the current Kolbs "Done" and create the next one (linked).
-// Usage:  node scripts/new-kolbs.mjs "Kolbs/SIR 1.md"
-// Then open the printed path in Obsidian.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { dirname, basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +10,7 @@ const curPath = resolve(ROOT, arg);
 if (!existsSync(curPath)) { console.error("Not found: " + curPath); process.exit(1); }
 
 const curName = basename(curPath, ".md");
-const m = curName.match(/^(.*?)(\d+)\s*$/);              // increment a trailing number
+const m = curName.match(/^(.*?)(\d+)\s*$/);
 const nextName = m ? `${m[1]}${Number(m[2]) + 1}` : `${curName} 2`;
 const nextPath = join(dirname(curPath), nextName + ".md");
 if (existsSync(nextPath)) { console.error("Already exists: " + nextPath); process.exit(1); }
