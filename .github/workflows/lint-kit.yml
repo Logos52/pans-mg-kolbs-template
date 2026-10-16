@@ -54,7 +54,7 @@ jobs:
         run: |
           probe=$(mktemp -d)
           cp lint-kit.json "$probe/lint-kit.json"
-          cp .lint-kit-baseline.json "$probe/.lint-kit-baseline.json"
+          printf '[]\n' > "$probe/rules.json"
           printf '# Notes\n\n## Rules\n\n- this line has no id\n' > "$probe/AGENTS.md"
           set +e
           set -o pipefail
