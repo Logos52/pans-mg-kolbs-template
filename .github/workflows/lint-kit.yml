@@ -66,19 +66,25 @@ jobs:
               console.log(String(i + 1).padStart(4, " "), line.slice(0, 240));
             }
           }
-          for (const rel of ["dist/model/load.js", "dist/lint/rules.js", "dist/lint/files.js", "dist/lint/dispatch.js", "dist/lint/main.js"]) {
-            const text = read(rel);
-            console.log("SLICE", rel, text.length);
-            for (const needle of ["docs-only", "mjs", "profileRules", "activeRules"]) {
-              let from = 0;
-              for (let n = 0; n < 3; n++) {
-                const idx = text.indexOf(needle, from);
-                if (idx < 0) break;
-                console.log("---", needle, idx);
-                console.log(text.slice(Math.max(0, idx - 240), idx + 360).replaceAll("\n", " "));
-                from = idx + needle.length;
-              }
+          const interesting = /profile|docs-only|language|mjs|\.js|glob|R1|include|ruleLevel|active|scripts/i;
+          function walk(dir, acc = []) {
+            for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+              if (ent.name === "node_modules") continue;
+              const p = path.join(dir, ent.name);
+              if (ent.isDirectory()) walk(p, acc);
+              else if (p.endsWith(".js")) acc.push(p);
             }
+            return acc;
+          }
+          for (const p of walk(path.join(root, "dist"))) {
+            const text = fs.readFileSync(p, "utf8");
+            const rel = path.relative(root, p);
+            const hits = text.split("\n").filter((line) => interesting.test(line));
+            if (hits.length === 0 && text.length > 8000) continue;
+            console.log("BEGINFILE", rel, text.length, "hits", hits.length);
+            if (text.length <= 8000) console.log(text);
+            else for (const line of hits) console.log(line.slice(0, 220));
+            console.log("ENDFILE", rel);
           }
           EOF
       - name: Check
