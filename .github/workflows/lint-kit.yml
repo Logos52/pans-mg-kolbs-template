@@ -1,0 +1,112 @@
+name: lint-kit
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  kit-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.LINT_KIT_DEPLOY_KEY }}
+      - name: Install lint-kit
+        run: |
+          npm install --prefix "$RUNNER_TEMP/lint-kit" --install-strategy=nested --no-save --no-package-lock "git+ssh://git@github.com/Logos52/lint-kit.git#5294e51e37a6b95e8c8613f5956d240ed1f4bd62"
+          npm --prefix "$RUNNER_TEMP/lint-kit/node_modules/lint-kit" run build
+          python -m pip install -r "$RUNNER_TEMP/lint-kit/node_modules/lint-kit/requirements.txt"
+      - name: Describe lint-kit
+        env:
+          LK: ${{ runner.temp }}/lint-kit/node_modules/lint-kit
+        run: |
+          "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" --help || true
+          "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" check --help || true
+          "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" baseline --help || true
+          node --input-type=module <<'EOF'
+          import fs from "node:fs";
+          import path from "node:path";
+          const root = process.env.LK;
+          const files = [];
+          function walk(dir, depth) {
+            if (depth > 3) return;
+            for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+              if (ent.name === "node_modules" || ent.name === ".git") continue;
+              const p = path.join(dir, ent.name);
+              if (ent.isDirectory()) walk(p, depth + 1);
+              else files.push(path.relative(root, p));
+            }
+          }
+          walk(root, 0);
+          console.log("FILE_LIST");
+          for (const f of files.sort()) console.log(f);
+          const hide = /pattern|regex|source|impl|snippet|fixture|test|code/i;
+          function skeleton(v, depth) {
+            if (v === null) return null;
+            if (depth > 2) return typeof v;
+            if (Array.isArray(v)) {
+              return { type: "array", length: v.length, first: v.length ? skeleton(v[0], depth + 1) : null };
+            }
+            if (typeof v === "object") {
+              const o = {};
+              for (const [k, val] of Object.entries(v)) {
+                if (hide.test(k)) o[k] = typeof val === "string" ? `string(${val.length})` : typeof val;
+                else if (typeof val === "string") o[k] = val.slice(0, 100);
+                else if (typeof val === "number" || typeof val === "boolean") o[k] = val;
+                else o[k] = skeleton(val, depth + 1);
+              }
+              return o;
+            }
+            if (typeof v === "string") return v.slice(0, 100);
+            return v;
+          }
+          for (const f of files.filter((name) => name.endsWith(".json") || name.endsWith(".md"))) {
+            const text = fs.readFileSync(path.join(root, f), "utf8");
+            console.log("DOC", f, text.length);
+            if (f.endsWith(".md")) {
+              for (const line of text.split("\n")) {
+                if (line.startsWith("#")) console.log(line.slice(0, 120));
+              }
+            } else {
+              try {
+                console.log(JSON.stringify(skeleton(JSON.parse(text), 0)));
+              } catch {
+                console.log("not-json");
+              }
+            }
+          }
+          EOF
+      - name: Check
+        run: |
+          mkdir -p node_modules/.bin
+          ln -sfn "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" node_modules/.bin/kit
+          set +e
+          set -o pipefail
+          npx kit check | tee "$RUNNER_TEMP/kit-check.txt"
+          status=${PIPESTATUS[0]}
+          {
+            echo "## kit check"
+            echo
+            echo "baseline lines: $(grep -c '^baseline ' "$RUNNER_TEMP/kit-check.txt" || true)"
+            echo
+            echo "warn lines: $(grep -c '^warn ' "$RUNNER_TEMP/kit-check.txt" || true)"
+            echo
+            echo "summary:"
+            echo
+            grep '^summary ' "$RUNNER_TEMP/kit-check.txt" || true
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/kit-check.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
