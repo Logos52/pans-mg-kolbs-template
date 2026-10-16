@@ -16,7 +16,7 @@
     "R1": "warn",
     "R2": "warn",
     "R4": "warn",
-    "R8": "warn",
+    "R8": "error",
     "R16": "warn",
     "R22": "warn",
     "R23": "warn"
