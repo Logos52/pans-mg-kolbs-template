@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// Complete a task and compute its break length from time taken (the "OFFrest" rule).
-// Usage:  node scripts/complete-task.mjs "Tasks/Task 1.md" [minutesTaken]
-const BREAK_RATIO = 0.2;   // break = 20% of time taken (adjust to taste); min 5 min.
+const BREAK_RATIO = 0.2;
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
