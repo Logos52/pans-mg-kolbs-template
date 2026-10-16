@@ -1,6 +1,6 @@
 {
   "profile": "docs-only",
-  "languages": ["js"],
+  "languages": ["mjs"],
   "ignore": ["node_modules/**", "dist/**", ".git/**", "coverage/**"],
   "proseGlobs": [
     "README.md",

@@ -66,12 +66,19 @@ jobs:
               console.log(String(i + 1).padStart(4, " "), line.slice(0, 240));
             }
           }
-          for (const rel of ["dist/model/load.js", "dist/model/shapes.js", "dist/lint/files.js", "dist/lint/rules.js"]) {
+          for (const rel of ["dist/model/load.js", "dist/lint/rules.js", "dist/lint/files.js", "dist/lint/dispatch.js", "dist/lint/main.js"]) {
             const text = read(rel);
-            const lits = [...text.matchAll(/"([^"\\]{1,60})"/g)].map((m) => m[1]);
-            const keep = [...new Set(lits)].filter((s) => /profile|docs|adopt|strict|language|mjs|js|warn|error|glob|rule|R\d+/.test(s));
-            console.log("LITS", rel, text.length);
-            for (const s of keep) console.log(" ", s);
+            console.log("SLICE", rel, text.length);
+            for (const needle of ["docs-only", "mjs", "profileRules", "activeRules"]) {
+              let from = 0;
+              for (let n = 0; n < 3; n++) {
+                const idx = text.indexOf(needle, from);
+                if (idx < 0) break;
+                console.log("---", needle, idx);
+                console.log(text.slice(Math.max(0, idx - 240), idx + 360).replaceAll("\n", " "));
+                from = idx + needle.length;
+              }
+            }
           }
           EOF
       - name: Check
