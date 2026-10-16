@@ -26,67 +26,12 @@ jobs:
           npm install --prefix "$RUNNER_TEMP/lint-kit" --install-strategy=nested --no-save --no-package-lock "git+ssh://git@github.com/Logos52/lint-kit.git#5294e51e37a6b95e8c8613f5956d240ed1f4bd62"
           npm --prefix "$RUNNER_TEMP/lint-kit/node_modules/lint-kit" run build
           python -m pip install -r "$RUNNER_TEMP/lint-kit/node_modules/lint-kit/requirements.txt"
-      - name: Describe lint-kit
-        env:
-          LK: ${{ runner.temp }}/lint-kit/node_modules/lint-kit
+      - name: Compare lint-kit main
         run: |
-          node --input-type=module <<'EOF'
-          import fs from "node:fs";
-          import path from "node:path";
-          const root = process.env.LK;
-          function read(rel) {
-            return fs.readFileSync(path.join(root, rel), "utf8");
-          }
-          for (const rel of ["README.md", "AGENTS.md", "bin/kit.mjs"]) {
-            const text = read(rel);
-            console.log("BEGIN", rel, text.length);
-            console.log(text);
-            console.log("END", rel);
-          }
-          const rules = JSON.parse(read("rules.json"));
-          const byId = new Map();
-          for (const rule of rules) {
-            const row = byId.get(rule.id) ?? { id: rule.id, checks: [], keys: new Set() };
-            row.checks.push(rule.check);
-            for (const key of Object.keys(rule)) row.keys.add(key);
-            byId.set(rule.id, row);
-          }
-          console.log("RULES");
-          for (const row of byId.values()) {
-            console.log(row.id, [...row.checks].join(","), "keys=" + [...row.keys].join(","));
-          }
-          const plan = read("docs/plan-excerpt.md");
-          const lines = plan.split("\n");
-          let capture = false;
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            if (/^### 2\.[37]|^## 3\.|^### 3\./.test(line)) capture = true;
-            if (capture && /^## /.test(line) && !line.startsWith("## 3")) capture = false;
-            if (capture || /docs-only|profile|languages|mjs|proseGlobs|boundaryFiles/.test(line)) {
-              console.log(String(i + 1).padStart(4, " "), line.slice(0, 240));
-            }
-          }
-          const interesting = /profile|docs-only|language|mjs|\.js|glob|R1|include|ruleLevel|active|scripts/i;
-          function walk(dir, acc = []) {
-            for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-              if (ent.name === "node_modules") continue;
-              const p = path.join(dir, ent.name);
-              if (ent.isDirectory()) walk(p, acc);
-              else if (p.endsWith(".js")) acc.push(p);
-            }
-            return acc;
-          }
-          for (const p of walk(path.join(root, "dist"))) {
-            const text = fs.readFileSync(p, "utf8");
-            const rel = path.relative(root, p);
-            const hits = text.split("\n").filter((line) => interesting.test(line));
-            if (hits.length === 0 && text.length > 8000) continue;
-            console.log("BEGINFILE", rel, text.length, "hits", hits.length);
-            if (text.length <= 8000) console.log(text);
-            else for (const line of hits) console.log(line.slice(0, 220));
-            console.log("ENDFILE", rel);
-          }
-          EOF
+          git ls-remote git@github.com:Logos52/lint-kit.git refs/heads/main
+          set +e
+          "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" baseline
+          echo "baseline-exit:$?"
       - name: Check
         run: |
           mkdir -p node_modules/.bin
@@ -111,3 +56,27 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
+      - name: Prove a broken link fails
+        run: |
+          probe=$(mktemp -d)
+          cp lint-kit.json "$probe/lint-kit.json"
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const file = process.argv[1];
+            const cfg = JSON.parse(fs.readFileSync(file, "utf8"));
+            cfg.rules.R23 = "error";
+            cfg.proseGlobs = ["docs/probe.md"];
+            fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n");
+          ' "$probe/lint-kit.json"
+          mkdir -p "$probe/docs"
+          printf '# Probe\n\nSee [missing](./no-such.md).\n' > "$probe/docs/probe.md"
+          set +e
+          set -o pipefail
+          (cd "$probe" && "$GITHUB_WORKSPACE/node_modules/.bin/kit" check | tee "$RUNNER_TEMP/probe.txt")
+          status=$?
+          cat "$RUNNER_TEMP/probe.txt"
+          if [ "$status" -eq 0 ]; then
+            echo "probe should have failed"
+            exit 1
+          fi
+          grep -q "R23 broken link" "$RUNNER_TEMP/probe.txt"
