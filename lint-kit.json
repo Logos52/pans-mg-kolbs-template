@@ -18,7 +18,7 @@
     "R4": "warn",
     "R8": "error",
     "R16": "error",
-    "R22": "warn",
+    "R22": "error",
     "R23": "error"
   },
   "prose": {
