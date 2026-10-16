@@ -30,60 +30,48 @@ jobs:
         env:
           LK: ${{ runner.temp }}/lint-kit/node_modules/lint-kit
         run: |
-          "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" --help || true
-          "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" check --help || true
-          "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" baseline --help || true
           node --input-type=module <<'EOF'
           import fs from "node:fs";
           import path from "node:path";
           const root = process.env.LK;
-          const files = [];
-          function walk(dir, depth) {
-            if (depth > 3) return;
-            for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-              if (ent.name === "node_modules" || ent.name === ".git") continue;
-              const p = path.join(dir, ent.name);
-              if (ent.isDirectory()) walk(p, depth + 1);
-              else files.push(path.relative(root, p));
+          function read(rel) {
+            return fs.readFileSync(path.join(root, rel), "utf8");
+          }
+          for (const rel of ["README.md", "AGENTS.md", "bin/kit.mjs"]) {
+            const text = read(rel);
+            console.log("BEGIN", rel, text.length);
+            console.log(text);
+            console.log("END", rel);
+          }
+          const rules = JSON.parse(read("rules.json"));
+          const byId = new Map();
+          for (const rule of rules) {
+            const row = byId.get(rule.id) ?? { id: rule.id, checks: [], keys: new Set() };
+            row.checks.push(rule.check);
+            for (const key of Object.keys(rule)) row.keys.add(key);
+            byId.set(rule.id, row);
+          }
+          console.log("RULES");
+          for (const row of byId.values()) {
+            console.log(row.id, [...row.checks].join(","), "keys=" + [...row.keys].join(","));
+          }
+          const plan = read("docs/plan-excerpt.md");
+          const lines = plan.split("\n");
+          let capture = false;
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            if (/^### 2\.[37]|^## 3\.|^### 3\./.test(line)) capture = true;
+            if (capture && /^## /.test(line) && !line.startsWith("## 3")) capture = false;
+            if (capture || /docs-only|profile|languages|mjs|proseGlobs|boundaryFiles/.test(line)) {
+              console.log(String(i + 1).padStart(4, " "), line.slice(0, 240));
             }
           }
-          walk(root, 0);
-          console.log("FILE_LIST");
-          for (const f of files.sort()) console.log(f);
-          const hide = /pattern|regex|source|impl|snippet|fixture|test|code/i;
-          function skeleton(v, depth) {
-            if (v === null) return null;
-            if (depth > 2) return typeof v;
-            if (Array.isArray(v)) {
-              return { type: "array", length: v.length, first: v.length ? skeleton(v[0], depth + 1) : null };
-            }
-            if (typeof v === "object") {
-              const o = {};
-              for (const [k, val] of Object.entries(v)) {
-                if (hide.test(k)) o[k] = typeof val === "string" ? `string(${val.length})` : typeof val;
-                else if (typeof val === "string") o[k] = val.slice(0, 100);
-                else if (typeof val === "number" || typeof val === "boolean") o[k] = val;
-                else o[k] = skeleton(val, depth + 1);
-              }
-              return o;
-            }
-            if (typeof v === "string") return v.slice(0, 100);
-            return v;
-          }
-          for (const f of files.filter((name) => name.endsWith(".json") || name.endsWith(".md"))) {
-            const text = fs.readFileSync(path.join(root, f), "utf8");
-            console.log("DOC", f, text.length);
-            if (f.endsWith(".md")) {
-              for (const line of text.split("\n")) {
-                if (line.startsWith("#")) console.log(line.slice(0, 120));
-              }
-            } else {
-              try {
-                console.log(JSON.stringify(skeleton(JSON.parse(text), 0)));
-              } catch {
-                console.log("not-json");
-              }
-            }
+          for (const rel of ["dist/model/load.js", "dist/model/shapes.js", "dist/lint/files.js", "dist/lint/rules.js"]) {
+            const text = read(rel);
+            const lits = [...text.matchAll(/"([^"\\]{1,60})"/g)].map((m) => m[1]);
+            const keep = [...new Set(lits)].filter((s) => /profile|docs|adopt|strict|language|mjs|js|warn|error|glob|rule|R\d+/.test(s));
+            console.log("LITS", rel, text.length);
+            for (const s of keep) console.log(" ", s);
           }
           EOF
       - name: Check
