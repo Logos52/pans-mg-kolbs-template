@@ -30,10 +30,6 @@ jobs:
         run: |
           mkdir -p node_modules/.bin
           ln -sfn "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" node_modules/.bin/kit
-          npx kit baseline --prune
-          echo "BASELINE_JSON_BEGIN"
-          cat .lint-kit-baseline.json
-          echo "BASELINE_JSON_END"
           set +e
           set -o pipefail
           npx kit check | tee "$RUNNER_TEMP/kit-check.txt"
