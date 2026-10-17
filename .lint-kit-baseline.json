@@ -3,17 +3,12 @@
     {
       "rule": "R16",
       "file": "README.md",
-      "fingerprint": "4143f545"
-    },
-    {
-      "rule": "R16",
-      "file": "README.md",
       "fingerprint": "129442eb"
     },
     {
       "rule": "R16",
       "file": "README.md",
-      "fingerprint": "65ed7a2a"
+      "fingerprint": "4143f545"
     },
     {
       "rule": "R16",
@@ -22,13 +17,18 @@
     },
     {
       "rule": "R16",
-      "file": "scripts/README.md",
-      "fingerprint": "ae5eb89f"
+      "file": "README.md",
+      "fingerprint": "65ed7a2a"
     },
     {
       "rule": "R16",
       "file": "scripts/README.md",
       "fingerprint": "822e8ff1"
+    },
+    {
+      "rule": "R16",
+      "file": "scripts/README.md",
+      "fingerprint": "ae5eb89f"
     }
   ]
 }
