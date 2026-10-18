@@ -93,4 +93,4 @@ Active rebuild. Structure and databases are being ported from the live Notion te
 
 ## License
 
-Copyright 2026 Logos52. All rights reserved. No licence is granted for the template content. Apache-2.0 applies to code only. See LICENSE-CODE.
+> Copyright 2026 Logos52. All rights reserved. No licence is granted for the template content. Apache-2.0 applies to code only. See LICENSE-CODE.
