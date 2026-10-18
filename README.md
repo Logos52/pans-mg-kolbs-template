@@ -90,3 +90,7 @@ Active rebuild. Structure and databases are being ported from the live Notion te
 
 - **☑️ Kolbs cycle:** `node scripts/new-kolbs.mjs "Kolbs/SIR 1.md"`
 - **✅ task break-timing:** `node scripts/complete-task.mjs "Tasks/Task 1.md" 50`
+
+## License
+
+> Copyright 2026 Logos52. All rights reserved. No licence is granted for the template content. Apache-2.0 applies to code only. See LICENSE-CODE.
