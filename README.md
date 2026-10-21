@@ -1,6 +1,6 @@
 # Pan's MG & Kolbs Template
 
-*An Obsidian rebuild of Pan's Notion **MG & Kolb's** learning-system template.*
+*An Obsidian rebuild of Pan's Notion MG & Kolb's learning-system template.*
 
 > **Original template (Notion):** https://panstemplates.notion.site/Dashboard-16ea69e8f5c48000920dc2ec2f401c4a
 >
@@ -10,46 +10,46 @@
 
 ## What it is
 
-A Kolb's-cycle / marginal-gains **learning system**. You run short reflective cycles ("Kolbs"), track the **skills** you're developing, manage **tasks** with deliberate break timing, and tie everything back to your **goals**. The original lives in Notion; this is the Obsidian port.
+A Kolb's-cycle / marginal-gains learning system. You run short reflective cycles ("Kolbs"), track the skills you're developing, manage tasks with deliberate break timing, and tie everything back to your goals. The original lives in Notion; this is the Obsidian port.
 
 Five linked databases:
 
-- **Tasks** — what to do, with `Do Date`, priority, time taken, and a computed break length.
-- **Kolbs** — reflective cycles, chained previous → next, linked to the skills they develop.
-- **Skills** — what you're building, current vs. final level, competency, linked to its Kolbs cycles.
-- **Goals** — anchoring objectives with start/end dates.
-- **Goal tracking** — periodic evaluation against goals.
+- Tasks: what to do, with `Do Date`, priority, time taken, and a computed break length.
+- Kolbs: reflective cycles, chained from the previous cycle to the next, linked to the skills they develop.
+- Skills: what you're building, current vs. final level, competency, linked to its Kolbs cycles.
+- Goals: anchoring objectives with start/end dates.
+- Goal tracking: periodic evaluation against goals.
 
 ## Built on Obsidian Bases
 
-Each Notion database is an Obsidian **Base** (`.base`) with one note per row, backed by frontmatter properties. Notion's views (board grouped by date, calendar, tables) are reproduced as Base views. Relations between databases are wikilinks + Base link properties — and because it's Obsidian, you also get **Graph view** and **backlinks** to navigate how skills, cycles, and goals connect, which Notion can't do.
+Each Notion database is an Obsidian Base (`.base`) with one note per row, backed by frontmatter properties. Notion's views (board grouped by date, calendar, tables) are reproduced as Base views. Relations between databases are wikilinks + Base link properties. Because it's Obsidian, you also get Graph view and backlinks to navigate how skills, cycles, and goals connect, which Notion can't do.
 
 ## Two tiers: works with or without AI
 
-The template is built to run for **anyone, with zero AI tools** — and to optionally light up AI features if you want them.
+The template is built to run for anyone, with zero AI tools, and it can optionally light up AI features if you want them.
 
-- **Tier 1 — deterministic (default).** Obsidian plugins + plain scripts. The Kolbs-cycle button scaffolds and links the next cycle; task completion computes break timing; recurring evaluation notes are generated on a schedule. No AI, no API keys, no external services.
-- **Tier 2 — AI-augmented (optional, off by default).** The same triggers, upgraded: a new Kolbs cycle can be pre-filled with suggested marginal gains drawn from your previous reflection; recurring evaluations can be drafted from recent notes. Toggle it off and Tier 1 still works fully.
+- Tier 1, deterministic (default). Obsidian plugins + plain scripts. The Kolbs-cycle button scaffolds and links the next cycle; task completion computes break timing; recurring evaluation notes are generated on a schedule. No AI, no API keys, no external services.
+- Tier 2, AI-augmented (optional, off by default). The same triggers, upgraded. A new Kolbs cycle can be pre-filled with suggested marginal gains drawn from your previous reflection; recurring evaluations can be drafted from recent notes. Toggle it off and Tier 1 still works fully.
 
 ## Requirements
 
-- **Obsidian** with **Bases** (latest version).
-- Recommended plugins: **Templater**, **QuickAdd**, **Dataview** (and optionally **Meta Bind**, **Full Calendar**).
-- For Tier 1 scheduled automations: **Python** (or Node) for the small scripts in `/scripts`, run manually or via `cron` / macOS `launchd`.
+- Obsidian with Bases (latest version).
+- Recommended plugins: Templater, QuickAdd, Dataview (and optionally Meta Bind, Full Calendar).
+- For Tier 1 scheduled automations: Python (or Node) for the small scripts in `/scripts`, run manually or via `cron` / macOS `launchd`.
 - For Tier 2: an LLM API client (only if you choose to enable it).
 
 See the PRD for the full dependency rationale.
 
 ## Install
 
-**As a standalone vault**
+### As a standalone vault
 
 1. Clone this repo.
 2. Open the folder as an Obsidian vault.
 3. Enable Bases + the recommended plugins.
 4. (Optional) Set up the `/scripts` automations per `/scripts/README`.
 
-**As a submodule inside an existing vault**
+### As a submodule inside an existing vault
 
 This template is designed to live both on its own and inside a larger vault:
 
@@ -72,7 +72,7 @@ The files render normally in Obsidian; your vault just pins a commit of this rep
 
 ## Credits
 
-Original **MG & Kolb's** template and learning method by **Pan** — see the [Notion source](https://panstemplates.notion.site/Dashboard-16ea69e8f5c48000920dc2ec2f401c4a). This repository is an independent Obsidian reimplementation of that template's structure and workflow.
+Original MG & Kolb's template and learning method by Pan. See the [Notion source](https://panstemplates.notion.site/Dashboard-16ea69e8f5c48000920dc2ec2f401c4a). This repository is an independent Obsidian reimplementation of that template's structure and workflow.
 
 ## Status
 
@@ -80,16 +80,16 @@ Active rebuild. Structure and databases are being ported from the live Notion te
 
 ## Database schemas
 
-- **Skills** — `type: skill`, `status` (Active/Paused/Inactive/Archived), `current-level` (1–10), `final-level` (1–10), `competency` (CI / CC (low) / CC (medium) / CC (high) / UC), `final-level-metrics`; relation links: `anchored-goal`, `goal-tracking`, `kolbs`, `kolbs-cycles`.
-- **Kolbs** — `type: kolbs`, `status` (Not started/In progress/Done), `start`, `finish`, `marginal-gains` (list), `experiments` (list); links: `previous-kolbs`, `next-kolbs`, `skills`.
-- **Tasks** — `type: task`, `status` (Incomplete/Complete), `priority`, `do-date`, `time-taken`, `break-length`.
-- **Goals** — `type: goal`, `status` (Not started/In progress/Archived), `start-date`, `end-date`.
-- **Goal Tracking** — `type: goal-tracking`, `date`, `performance-goals`, `skills-evaluation`; links: `next-weeks-focus`, `skills`.
+- Skills: `type: skill`, `status` (Active/Paused/Inactive/Archived), `current-level` (1-10), `final-level` (1-10), `competency` (CI / CC (low) / CC (medium) / CC (high) / UC), `final-level-metrics`; relation links: `anchored-goal`, `goal-tracking`, `kolbs`, `kolbs-cycles`.
+- Kolbs: `type: kolbs`, `status` (Not started/In progress/Done), `start`, `finish`, `marginal-gains` (list), `experiments` (list); links: `previous-kolbs`, `next-kolbs`, `skills`.
+- Tasks: `type: task`, `status` (Incomplete/Complete), `priority`, `do-date`, `time-taken`, `break-length`.
+- Goals: `type: goal`, `status` (Not started/In progress/Archived), `start-date`, `end-date`.
+- Goal Tracking: `type: goal-tracking`, `date`, `performance-goals`, `skills-evaluation`; links: `next-weeks-focus`, `skills`.
 
 ## Automations (`scripts/`, plugin-free)
 
-- **☑️ Kolbs cycle:** `node scripts/new-kolbs.mjs "Kolbs/SIR 1.md"`
-- **✅ task break-timing:** `node scripts/complete-task.mjs "Tasks/Task 1.md" 50`
+- Kolbs cycle: `node scripts/new-kolbs.mjs "Kolbs/SIR 1.md"`
+- Task break timing: `node scripts/complete-task.mjs "Tasks/Task 1.md" 50`
 
 ## License
 
