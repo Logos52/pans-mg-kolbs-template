@@ -124,4 +124,38 @@ jobs:
           npx kit check
           echo "kit check exit $?"
           echo 'END_CHECK'
+          echo 'BEGIN_SOURCE'
+          node --input-type=module <<'EOF'
+          import fs from "node:fs";
+          import path from "node:path";
+          const root = process.env.LK;
+          const hits = [];
+          function walk(dir) {
+            for (const name of fs.readdirSync(dir)) {
+              if (name === "node_modules" || name === ".git") continue;
+              const full = path.join(dir, name);
+              const stat = fs.statSync(full);
+              if (stat.isDirectory()) walk(full);
+              else if (/\.(js|mjs|cjs|ts|json|md)$/.test(name) && stat.size < 400000) {
+                const text = fs.readFileSync(full, "utf8");
+                if (/origin\/main|check:batch|check:pin|proof link|R26|R27|baseline-add/.test(text)) hits.push(full);
+              }
+            }
+          }
+          walk(root);
+          for (const full of hits) {
+            const rel = path.relative(root, full);
+            const lines = fs.readFileSync(full, "utf8").split("\n");
+            console.log("FILE", rel, "lines", lines.length);
+            lines.forEach((line, i) => {
+              if (/origin\/main|check:batch|check:pin|proof|R26|R27|baseline-add/.test(line)) {
+                const from = Math.max(0, i - 3);
+                const to = Math.min(lines.length, i + 4);
+                console.log("---", rel, i + 1);
+                for (let n = from; n < to; n++) console.log(String(n + 1).padStart(4), lines[n].slice(0, 240));
+              }
+            });
+          }
+          EOF
+          echo 'END_SOURCE'
           exit 0
