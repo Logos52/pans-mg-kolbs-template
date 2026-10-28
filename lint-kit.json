@@ -12,13 +12,11 @@
   ],
   "boundaryFiles": [],
   "baseline": ".lint-kit-baseline.json",
+  "batch": "v2",
   "rules": {
-    "R1": "error",
     "R2": "error",
-    "R4": "error",
     "R8": "error",
     "R16": "error",
-    "R22": "error",
     "R23": "error"
   },
   "prose": {
