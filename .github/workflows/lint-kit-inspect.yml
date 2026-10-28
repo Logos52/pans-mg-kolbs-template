@@ -1,0 +1,127 @@
+name: lint-kit-inspect
+
+on:
+  push:
+    branches: [cursor/lint-kit-inspect-ccae]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.LINT_KIT_DEPLOY_KEY }}
+      - name: Install lint-kit at target sha
+        run: |
+          npm install --prefix "$RUNNER_TEMP/lint-kit" --install-strategy=nested --no-save --no-package-lock "git+ssh://git@github.com/Logos52/lint-kit.git#11b2880e890ba1525775843e3f6027e729afbe25"
+          npm --prefix "$RUNNER_TEMP/lint-kit/node_modules/lint-kit" run build
+          python -m pip install -r "$RUNNER_TEMP/lint-kit/node_modules/lint-kit/requirements.txt"
+      - name: Upgrade and resolve batch
+        env:
+          LK: ${{ runner.temp }}/lint-kit/node_modules/lint-kit
+          SHA: 11b2880e890ba1525775843e3f6027e729afbe25
+        run: |
+          set +e
+          mkdir -p node_modules/.bin
+          ln -sfn "$RUNNER_TEMP/lint-kit/node_modules/.bin/kit" node_modules/.bin/kit
+          ln -sfn "$RUNNER_TEMP/lint-kit/node_modules/.bin/lint-kit" node_modules/.bin/lint-kit
+          echo 'BEGIN_BINS'
+          ls -1 "$RUNNER_TEMP/lint-kit/node_modules/.bin"
+          echo 'END_BINS'
+          echo 'BEGIN_PKG'
+          node -e 'const p=require(process.env.LK+"/package.json"); console.log(JSON.stringify({bin:p.bin,scripts:p.scripts,version:p.version},null,2))'
+          echo 'END_PKG'
+          echo 'BEGIN_BATCHES'
+          cat "$LK/batches.json"
+          echo
+          echo 'END_BATCHES'
+          echo 'BEGIN_HELP'
+          npx kit --help
+          echo "kit --help exit $?"
+          npx kit upgrade --help
+          echo "kit upgrade --help exit $?"
+          npx lint-kit upgrade --help
+          echo "lint-kit upgrade --help exit $?"
+          echo 'END_HELP'
+          echo 'BEGIN_UPGRADE'
+          if npx lint-kit upgrade "$SHA"; then
+            echo "upgrade via lint-kit exit 0"
+          else
+            echo "lint-kit upgrade exit $?"
+            if npx kit upgrade "$SHA"; then
+              echo "upgrade via kit exit 0"
+            else
+              echo "kit upgrade exit $?"
+            fi
+          fi
+          echo 'END_UPGRADE'
+          echo 'BEGIN_AFTER_UPGRADE'
+          git diff -- .github/workflows/lint-kit.yml lint-kit.json .lint-kit-baseline.json
+          echo 'END_AFTER_UPGRADE'
+          node --input-type=module <<'EOF'
+          import fs from "node:fs";
+
+          const batchesDoc = JSON.parse(fs.readFileSync(process.env.LK + "/batches.json", "utf8"));
+          const config = JSON.parse(fs.readFileSync("lint-kit.json", "utf8"));
+
+          function ruleIds(value) {
+            if (Array.isArray(value)) return value.filter((item) => typeof item === "string");
+            if (value && Array.isArray(value.rules)) return value.rules.filter((item) => typeof item === "string");
+            if (value && typeof value === "object") {
+              return Object.keys(value).filter((key) => /^R\d+$/.test(key));
+            }
+            return [];
+          }
+
+          function batchesOf(doc) {
+            const source = doc && !Array.isArray(doc) && doc.batches ? doc.batches : doc;
+            if (Array.isArray(source)) {
+              return source.map((batch) => ({ id: String(batch.id), rules: ruleIds(batch.rules ?? batch) }));
+            }
+            return Object.entries(source)
+              .filter(([id]) => /^v\d+$/.test(id))
+              .map(([id, value]) => ({ id, rules: ruleIds(value) }));
+          }
+
+          const batches = batchesOf(batchesDoc).sort((a, b) => Number(b.id.slice(1)) - Number(a.id.slice(1)));
+          const errors = new Set(
+            Object.entries(config.rules ?? {}).filter(([, level]) => level === "error").map(([id]) => id),
+          );
+          console.log("BEGIN_BATCH_CHOICE");
+          for (const batch of batches) {
+            const missing = batch.rules.filter((id) => !errors.has(id));
+            console.log(batch.id, batch.rules.join(","), "missing", missing.join(",") || "-");
+          }
+          const chosen = batches.find((batch) => batch.rules.length > 0 && batch.rules.every((id) => errors.has(id)));
+          console.log("chosen", chosen ? chosen.id : "none");
+          console.log("END_BATCH_CHOICE");
+          if (!chosen) process.exit(0);
+          const next = { ...config, batch: chosen.id };
+          const rules = { ...(config.rules ?? {}) };
+          for (const id of chosen.rules) delete rules[id];
+          next.rules = rules;
+          fs.writeFileSync("lint-kit.json", JSON.stringify(next, null, 2) + "\n");
+          EOF
+          echo 'BEGIN_RESULT_FILES'
+          echo '--- lint-kit.json ---'
+          cat lint-kit.json
+          echo '--- baseline ---'
+          cat .lint-kit-baseline.json
+          echo '--- workflow ---'
+          cat .github/workflows/lint-kit.yml
+          echo 'END_RESULT_FILES'
+          echo 'BEGIN_CHECK'
+          npx kit check
+          echo "kit check exit $?"
+          echo 'END_CHECK'
+          exit 0
