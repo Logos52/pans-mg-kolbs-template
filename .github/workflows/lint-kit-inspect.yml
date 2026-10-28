@@ -125,10 +125,10 @@ jobs:
           echo "kit check exit $?"
           echo 'END_CHECK'
           echo 'BEGIN_FILES'
-          echo '===== batches.ts ====='
-          cat "$LK/src/model/batches.ts"
-          echo '===== grep batch use ====='
-          grep -n -E "cumulativeRules|config\\.batch|\\.batch" "$LK/src/model/"*.ts "$LK/src/lint/"*.ts | grep -v '\.test\.ts' || true
+          echo '===== baseline.ts ====='
+          cat "$LK/src/lint/baseline.ts"
+          echo '===== profiles ====='
+          grep -n -E "docs-only|profile" "$LK/src/model/"*.ts "$LK/src/lint/"*.ts | grep -v test | head -80
           echo 'END_FILES'
           echo 'BEGIN_SOURCE'
           node --input-type=module <<'EOF'
