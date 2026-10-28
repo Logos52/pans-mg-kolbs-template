@@ -125,12 +125,10 @@ jobs:
           echo "kit check exit $?"
           echo 'END_CHECK'
           echo 'BEGIN_FILES'
-          for f in src/lint/batch.ts src/lint/baseline-add.ts src/lint/pr-body.ts src/lint/pin.ts README.md; do
-            echo "===== $f ====="
-            cat "$LK/$f"
-          done
-          echo '===== GREP origin ====='
-          grep -n -R "origin/" "$LK/src" || true
+          echo '===== batches.ts ====='
+          cat "$LK/src/model/batches.ts"
+          echo '===== grep batch use ====='
+          grep -n -E "cumulativeRules|config\\.batch|\\.batch" "$LK/src/model/"*.ts "$LK/src/lint/"*.ts | grep -v '\.test\.ts' || true
           echo 'END_FILES'
           echo 'BEGIN_SOURCE'
           node --input-type=module <<'EOF'
